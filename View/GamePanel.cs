@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
     
 public class GamePanel : MonoBehaviour
@@ -61,7 +62,7 @@ public class GamePanel : MonoBehaviour
     //退出
     public void OnExitClick()
     {
-
+        
     }
 
     //初始化格子
@@ -117,6 +118,8 @@ public class GamePanel : MonoBehaviour
                 //判断格子里是否有数字，如果没有数字，就将其加入到没有数字的集合中去
                 if (!grids[i][j].IsHaveNumber())
                 {
+                    //判断这个格子里有没有数字
+                    //如果没有数字
                     canCreateNumberGrid.Add(grids[i][j]);
                 }
             }
@@ -136,7 +139,7 @@ public class GamePanel : MonoBehaviour
         gameObj.GetComponent<Number>().Init(canCreateNumberGrid[index]);
 
         //创建数字 将数字放入
-        
+
     }
 
     //鼠标点击
@@ -164,6 +167,9 @@ public class GamePanel : MonoBehaviour
 
         //产生数字
         CreateNumber();
+
+        //把所有数字的状态恢复成正常状态
+        ResetNumberStatus();
     }
 
     //计算移动的类型
@@ -311,7 +317,7 @@ public class GamePanel : MonoBehaviour
 
                 for (int j = 0; j < column; j++)
                 {
-                    for (int i = row-1; i >=0 ; i--)      
+                    for (int i = row-2; i >=0 ; i--)      
                     {
                         //判断格子是否有数字  有数字就进行 接下来循环（格子里是否有数字/有数字是否要合并格子并销毁数字）
                         if (grids[i][j].IsHaveNumber())
@@ -347,7 +353,7 @@ public class GamePanel : MonoBehaviour
         if (target != null)
         { 
             //判断 是否可以合并
-            if (current.GetNumber() == target.GetNumber())
+            if (current.IsMerge(target))
             {
                 target.Merge();
 
@@ -361,5 +367,21 @@ public class GamePanel : MonoBehaviour
             //没有数字
                 current.MoveToGrid(targetGrid);
             }
+    }
+
+    //重置数字的状态
+    public void ResetNumberStatus()
+    {
+        //遍历所有数字
+        for (int i = 0; i < row; i++)
+        {
+            for (int j = 0; j < column; j++)
+            {
+                if (grids[i][j].IsHaveNumber())
+                {
+                    grids[i][j].GetNumber().status = NumberStatus.Normal;
+                }
+            }
+        }
     }
 }

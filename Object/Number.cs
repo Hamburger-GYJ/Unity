@@ -9,6 +9,8 @@ public class Number : MonoBehaviour
     Text number_text;
     MyGrid inGrid;    //这个数字所在的格子
 
+    public NumberStatus status;
+
     private void Awake()
     {
         bg = GetComponent<Image>();
@@ -24,6 +26,7 @@ public class Number : MonoBehaviour
         this.SetGrid(myGrid);
         //初始化数字
         this.SetNumber(2);
+        status = NumberStatus.Normal;
     }
 
 
@@ -68,5 +71,16 @@ public class Number : MonoBehaviour
     public void Merge()
     {
         this.SetNumber(this.GetNumber() * 2);
+        status = NumberStatus.NotMerge;
+    }
+
+    //判断能不能合并
+    public bool IsMerge( Number number)
+    {
+        if (this.GetNumber() == number.GetNumber() && number.status == NumberStatus.Normal)
+        {
+            return true;
+        }
+        return false;
     }
 }
