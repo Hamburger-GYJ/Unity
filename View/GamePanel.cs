@@ -159,7 +159,7 @@ public class GamePanel : MonoBehaviour
 
         //计算移动类型
         MoveType moveType = CaculateMoveType();
-        //Debug.Log("移动类型：" + moveType);
+        Debug.Log("移动类型：" + moveType);
         MoveNumber(moveType);
 
         //产生数字
@@ -204,7 +204,7 @@ public class GamePanel : MonoBehaviour
     }
 
     //移动数字
-    public void MoveNumber( MoveType moveType)
+    public void MoveNumber( MoveType moveType)  //参数知晓移动类型
     {
         switch (moveType)
         {
@@ -224,12 +224,12 @@ public class GamePanel : MonoBehaviour
                             for (int m = j + 1; m < column; m++)
                             {
                                 Number targetNumber = null;
-                                if (grids[m][j].IsHaveNumber())
+                                if (grids[i][m].IsHaveNumber())
                                 {
-                                    targetNumber = grids[m][j].GetNumber();
+                                    targetNumber = grids[i][m].GetNumber();
                                 }
 
-                                HandelNumber(number, targetNumber, grids[m][j]);
+                                HandelNumber(number, targetNumber, grids[i][m]);
 
                                 if (targetNumber != null)   //如果没有数字跳出循环
                                 {
@@ -244,7 +244,7 @@ public class GamePanel : MonoBehaviour
 
                 for (int i = 0; i < row; i++)
                 {
-                    for (int j = 1; j >= column; j++ )
+                    for (int j = 1; j < column; j++ )
                     {
                         //判断格子是否有数字  有数字就进行 接下来循环（格子里是否有数字/有数字是否要合并格子并销毁数字）
                         if (grids[i][j].IsHaveNumber())
@@ -256,7 +256,7 @@ public class GamePanel : MonoBehaviour
                             for (int m = j-1; m >= 0; m--)
                             {
                                 Number targetNumber = null;
-                                if (grids[m][j].IsHaveNumber())
+                                if (grids[i][m].IsHaveNumber())
                                 {
                                     targetNumber = grids[i][m].GetNumber();
                                 }
@@ -276,7 +276,7 @@ public class GamePanel : MonoBehaviour
 
                 for (int j = 0; j < column; j++)
                 {
-                    for (int i = 1; i < row; i++)
+                    for (int i = 0; i < row; i++)
                     {
                         //判断格子是否有数字  有数字就进行循环
                         if (grids[i][j].IsHaveNumber())
@@ -284,7 +284,8 @@ public class GamePanel : MonoBehaviour
 
                             Number number = grids[i][j].GetNumber();
 
-                            //Debug.Log("坐标：" + i + "," + j);
+                            Debug.Log("坐标：" + i + "," + j);
+
                             for (int m = i - 1; m >= 0; m--)
                             {
                    
@@ -310,7 +311,7 @@ public class GamePanel : MonoBehaviour
 
                 for (int j = 0; j < column; j++)
                 {
-                    for (int i = 3; i < row; i++)
+                    for (int i = row-1; i >=0 ; i--)      
                     {
                         //判断格子是否有数字  有数字就进行 接下来循环（格子里是否有数字/有数字是否要合并格子并销毁数字）
                         if (grids[i][j].IsHaveNumber())
@@ -326,7 +327,6 @@ public class GamePanel : MonoBehaviour
                                 {
                                     targetNumber = grids[m][j].GetNumber();
                                 }
-
                                 HandelNumber(number, targetNumber, grids[m][j]);
 
                                 if (targetNumber != null)   //如果没有数字跳出循环
@@ -342,23 +342,24 @@ public class GamePanel : MonoBehaviour
     }
 
     //处理数字
-    public void HandelNumber( Number currentNum, Number targetNum, MyGrid targetGrid)
+    public void HandelNumber( Number current, Number target,MyGrid targetGrid)
     {
-        if (targetNum != null)
-        {
+        if (target != null)
+        { 
             //判断 是否可以合并
-            if (currentNum.GetNumber() == targetNum.GetNumber())
+            if (current.GetNumber() == target.GetNumber())
             {
-                targetNum.Merge();
+                target.Merge();
 
                 //销毁当前数字
-                currentNum.GetGrid().SetNumber(null);
-                GameObject.Destroy(currentNum.gameObject);
-            }
-            else
-            {
-                currentNum.MoveToGrid(targetGrid);
+                current.GetGrid().SetNumber(null);
+                GameObject.Destroy(current.gameObject);
             }
         }
+        else
+            {
+            //没有数字
+                current.MoveToGrid(targetGrid);
+            }
     }
 }
