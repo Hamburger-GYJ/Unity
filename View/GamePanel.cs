@@ -27,6 +27,8 @@ public class GamePanel : MonoBehaviour
 
     private Vector3 pointerDownPos, pointerUpPos;
 
+    private bool isNeedCreateNumber = false;
+
     //一开始就初始化格子
     private void Awake()
     {
@@ -166,10 +168,15 @@ public class GamePanel : MonoBehaviour
         MoveNumber(moveType);
 
         //产生数字
-        CreateNumber();
+        if (isNeedCreateNumber)
+        {
+            CreateNumber();
+        }
+
 
         //把所有数字的状态恢复成正常状态
         ResetNumberStatus();
+        isNeedCreateNumber = false;
     }
 
     //计算移动的类型
@@ -359,14 +366,17 @@ public class GamePanel : MonoBehaviour
 
                 //销毁当前数字
                 current.GetGrid().SetNumber(null);
-                GameObject.Destroy(current.gameObject);
+                //GameObject.Destroy(current.gameObject);
+                current.DestroyOnEnd(target.GetGrid());
+                isNeedCreateNumber = true;
             }
         }
         else
             {
             //没有数字
-                current.MoveToGrid(targetGrid);
-            }
+            current.MoveToGrid(targetGrid);
+            isNeedCreateNumber = true;
+        }
     }
 
     //重置数字的状态
