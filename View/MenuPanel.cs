@@ -12,8 +12,18 @@ public class MenuPanel : MonoBehaviour
     Button btn_Set;
     Button btn_ExitGame;
 
+    AudioClip bgClip;
+
+    
+    private void Awake()
+    {
+        bgClip = Resources.Load<AudioClip>("Water");
+    }
+
     private void Start()
     {
+
+        AudioManager._instance.PlayMusic(bgClip);
         selectModePanel = GameObject.Find("Canvas/SelectModePanel").GetComponent<SelectModePanel>();
         selectModePanel.transform.gameObject.SetActive(false);
         setPanel = GameObject.Find("Canvas/SetPanel").GetComponent<SetPanel>();

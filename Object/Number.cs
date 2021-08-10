@@ -26,10 +26,18 @@ public class Number : MonoBehaviour
     public Color[] bg_colors;
     public List<int> number_index;
 
+    AudioClip mergeClip;
+
     private void Awake()
     {
         bg = GetComponent<Image>();
         number_text = transform.Find("Text").GetComponent<Text>();
+    }
+
+    private void Start()
+    {
+        mergeClip = Resources.Load<AudioClip>("AudioOfMerge");
+
     }
 
     private void Update()
@@ -149,11 +157,24 @@ public class Number : MonoBehaviour
     //合并数字
     public void Merge()
     {
-        this.SetNumber(this.GetNumber() * 2);
+        GamePanel gamePanel = GameObject.Find("Canvas/GamePanel").GetComponent<GamePanel>();
+        gamePanel.AddScore(this.GetNumber());
+
+        int number = this.GetNumber() * 2;
+        this.SetNumber(number);
+        if (number == 2048)
+        {
+            //游戏胜利
+            gamePanel.GameWin();
+        }
+
         status = NumberStatus.NotMerge;
         //播放合并动画
         PlayMergeAnim();
-        
+
+        //播放音效
+        AudioManager._instance.PlaySound(mergeClip);
+
     }
 
     //判断能不能合并
