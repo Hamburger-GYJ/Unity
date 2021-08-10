@@ -4,16 +4,22 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-    
+
 public class GamePanel : MonoBehaviour
 {
 
+    #region UI控件 
     Text text_Score;      //分数
     Text text_BestScore;  //最高分
     Button btn_LastStep;  //上一步
     Button btn_Restart;   //重新开始
     Button btn_ExitStep;  //下一步
 
+    WinPanel winPanel; //赢的界面
+    LosePanel losePanel; //输的界面
+    #endregion
+
+    #region 属性 变量
     Transform gridParents;       //格子父物体
     Dictionary<int, int> grid_config = new Dictionary<int, int>() { { 4, 100 }, { 5, 80 }, { 6, 65 } };
 
@@ -29,48 +35,51 @@ public class GamePanel : MonoBehaviour
 
     private bool isNeedCreateNumber = false;
 
-    //一开始就初始化格子
+    public int currentScore;
+    public StepModel lastStepModel;
+
+    AudioClip bgClip;
+
+    #endregion
+
+    #region 游戏周期
+
+
     private void Awake()
     {
+        bgClip = Resources.Load<AudioClip>("Water");
+        text_Score = transform.Find("Score/Text (1)").GetComponent<Text>();
+        text_BestScore = transform.Find("BestScore/Text (1)").GetComponent<Text>();
+        btn_LastStep =transform.Find("Btn_Last").GetComponent<Button>();
+        btn_LastStep.onClick.AddListener(OnLastClick);
+        btn_Restart = transform.Find("Btn_Restart").GetComponent<Button>();
+        btn_Restart.onClick.AddListener(RestartGame);
+        btn_ExitStep = transform.Find("Btn_Exit").GetComponent<Button>();
+        btn_ExitStep.onClick.AddListener(ExitGame);
+        winPanel = GameObject.Find("WinPanel").GetComponent<WinPanel>();
+        losePanel = GameObject.Find("LosePanel").GetComponent<LosePanel>();
         gridParents = transform.Find("Grid");
         gridPrefab = Resources.Load<GameObject>("Prefabs/Item");
         numberPrefab = Resources.Load<GameObject>("Prefabs/Number");
+
+        //初始化界面信息
+        InitPanelMessage();
+
+        //初始化格子
         InitGrid();
+        //创建第一个数字
         CreateNumber();
     }
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        text_Score = transform.Find("Score/Text (1)").GetComponent<Text>();
-        text_BestScore = transform.Find("BestScore/Text (1)").GetComponent<Text>();
-        btn_LastStep = GetComponent<Button>();
-        btn_Restart = GetComponent<Button>();
-        btn_ExitStep = GetComponent<Button>();
-    }
+    #endregion
 
-    //上一步
-    public void OnLastClick()
-    {
 
-    }
-
-    //重新开始
-    public void OnRestartClick()
-    {
-
-    }
-
-    //退出
-    public void OnExitClick()
-    {
-        
-    }
+    #region 游戏逻辑
 
     //初始化格子
     public void InitGrid()
     {
-        
+
 
         //获取格子数量
         int gridNum = PlayerPrefs.GetInt(Const.GameModel, 4);
@@ -94,16 +103,16 @@ public class GamePanel : MonoBehaviour
                 {
                     grids[i] = new MyGrid[gridNum];
                 }
-               grids[i][j] = CreateGrid();
+                grids[i][j] = CreateGrid();
             }
         }
-    } 
+    }
 
     //创建格子
     public MyGrid CreateGrid()
     {
         //实例化格子预制体
-        GameObject gameObject =  GameObject.Instantiate(gridPrefab, gridParents);
+        GameObject gameObject = GameObject.Instantiate(gridPrefab, gridParents);
 
         return gameObject.GetComponent<MyGrid>();
     }
@@ -128,7 +137,7 @@ public class GamePanel : MonoBehaviour
         }
 
         //如果可创建数字的格子为0，就不创建数字了
-        if ( canCreateNumberGrid.Count == 0 )
+        if (canCreateNumberGrid.Count == 0)
         {
             return;
         }
@@ -137,46 +146,19 @@ public class GamePanel : MonoBehaviour
         int index = Random.Range(0, canCreateNumberGrid.Count);
 
         //在随机的格子里创建数字
-        GameObject gameObj =  GameObject.Instantiate(numberPrefab, canCreateNumberGrid[index].transform);
+        GameObject gameObj = GameObject.Instantiate(numberPrefab, canCreateNumberGrid[index].transform);
         gameObj.GetComponent<Number>().Init(canCreateNumberGrid[index]);
 
         //创建数字 将数字放入
 
     }
 
-    //鼠标点击
-    public void OnPointerDown()
+    public void CreateNumber( MyGrid myGrid , int number )
     {
-        pointerDownPos = Input.mousePosition;
-    }
-
-    //鼠标抬起
-    public void OnPointerUp()
-    {
-        pointerUpPos = Input.mousePosition;
-
-        //判断 移动距离小时是无效操作
-        if (Vector3.Distance(pointerDownPos,pointerUpPos) < 100 )
-        {
-            Debug.Log("无效操作");
-            return;
-        }
-
-        //计算移动类型
-        MoveType moveType = CaculateMoveType();
-        Debug.Log("移动类型：" + moveType);
-        MoveNumber(moveType);
-
-        //产生数字
-        if (isNeedCreateNumber)
-        {
-            CreateNumber();
-        }
-
-
-        //把所有数字的状态恢复成正常状态
-        ResetNumberStatus();
-        isNeedCreateNumber = false;
+        GameObject gameObj
+            = GameObject.Instantiate(numberPrefab, myGrid.transform);
+        gameObj.GetComponent<Number>().Init(myGrid);
+        gameObj.GetComponent<Number>().SetNumber(number);
     }
 
     //计算移动的类型
@@ -217,7 +199,7 @@ public class GamePanel : MonoBehaviour
     }
 
     //移动数字
-    public void MoveNumber( MoveType moveType)  //参数知晓移动类型
+    public void MoveNumber(MoveType moveType)  //参数知晓移动类型
     {
         switch (moveType)
         {
@@ -257,7 +239,7 @@ public class GamePanel : MonoBehaviour
 
                 for (int i = 0; i < row; i++)
                 {
-                    for (int j = 1; j < column; j++ )
+                    for (int j = 1; j < column; j++)
                     {
                         //判断格子是否有数字  有数字就进行 接下来循环（格子里是否有数字/有数字是否要合并格子并销毁数字）
                         if (grids[i][j].IsHaveNumber())
@@ -266,7 +248,7 @@ public class GamePanel : MonoBehaviour
                             Number number = grids[i][j].GetNumber();
 
                             //Debug.Log("坐标：" + i + "," + j);
-                            for (int m = j-1; m >= 0; m--)
+                            for (int m = j - 1; m >= 0; m--)
                             {
                                 Number targetNumber = null;
                                 if (grids[i][m].IsHaveNumber())
@@ -297,15 +279,15 @@ public class GamePanel : MonoBehaviour
 
                             Number number = grids[i][j].GetNumber();
 
-                            Debug.Log("坐标：" + i + "," + j);
+                            //Debug.Log("坐标：" + i + "," + j);
 
                             for (int m = i - 1; m >= 0; m--)
                             {
-                   
+
                                 Number targetNumber = null;
                                 if (grids[m][j].IsHaveNumber())
                                 {
-                                    targetNumber = grids[m][j].GetNumber(); 
+                                    targetNumber = grids[m][j].GetNumber();
                                 }
 
                                 HandelNumber(number, targetNumber, grids[m][j]);
@@ -324,7 +306,7 @@ public class GamePanel : MonoBehaviour
 
                 for (int j = 0; j < column; j++)
                 {
-                    for (int i = row-2; i >=0 ; i--)      
+                    for (int i = row - 2; i >= 0; i--)
                     {
                         //判断格子是否有数字  有数字就进行 接下来循环（格子里是否有数字/有数字是否要合并格子并销毁数字）
                         if (grids[i][j].IsHaveNumber())
@@ -333,7 +315,7 @@ public class GamePanel : MonoBehaviour
                             Number number = grids[i][j].GetNumber();
 
                             //Debug.Log("坐标：" + i + "," + j);
-                            for (int m = i+1; m < row; m++)
+                            for (int m = i + 1; m < row; m++)
                             {
                                 Number targetNumber = null;
                                 if (grids[m][j].IsHaveNumber())
@@ -355,10 +337,10 @@ public class GamePanel : MonoBehaviour
     }
 
     //处理数字
-    public void HandelNumber( Number current, Number target,MyGrid targetGrid)
+    public void HandelNumber(Number current, Number target, MyGrid targetGrid)
     {
         if (target != null)
-        { 
+        {
             //判断 是否可以合并
             if (current.IsMerge(target))
             {
@@ -372,7 +354,7 @@ public class GamePanel : MonoBehaviour
             }
         }
         else
-            {
+        {
             //没有数字
             current.MoveToGrid(targetGrid);
             isNeedCreateNumber = true;
@@ -394,4 +376,270 @@ public class GamePanel : MonoBehaviour
             }
         }
     }
+
+    //判断游戏是否失败
+    public bool IsGameLose()
+    {
+        //判断格子是否满了
+        for (int i = 0; i < row; i++)
+        {
+            for (int j = 0; j < column; j++)
+            {
+                if (!grids[i][j].IsHaveNumber())
+                {
+                    return false;
+                }
+            }
+        }
+        //判断有没有数字能够合并
+        for (int i = 0; i < row; i += 2)
+        {
+            for (int j = 0; j < column; j ++)
+            {
+                MyGrid up = IsHaveGrid(i - 1, j) ? grids[i - 1][j] : null;
+                MyGrid down = IsHaveGrid(i + 1, j) ? grids[i + 1][j] : null;
+                MyGrid left = IsHaveGrid(i, j - 1) ? grids[i][j - 1] : null;
+                MyGrid right = IsHaveGrid(i, j + 1) ? grids[i][j + 1] : null;
+
+                if (up != null)
+                {
+                    if (grids[i][j].GetNumber().IsMerge(up.GetNumber()))
+                    {
+                        return false;
+                    }
+                }
+
+                if (down != null)
+                {
+                    if (grids[i][j].GetNumber().IsMerge(down.GetNumber()))
+                    {
+                        return false;
+                    }
+                }
+
+                if (left != null)
+                {
+                    if (grids[i][j].GetNumber().IsMerge(left.GetNumber()))
+                    {
+                        return false;
+                    }
+                }
+
+                if (right != null)
+                {
+                    if (grids[i][j].GetNumber().IsMerge(right.GetNumber()))
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true; //游戏失败
+    }
+    
+    //判断是否有空格子
+    public bool IsHaveGrid(int i, int j)
+    {
+        if (i >= 0 && i<row && j>= 0 && j<column)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    #endregion
+
+    #region 事件监听
+
+    //鼠标点击
+    public void OnPointerDown()
+    {
+        pointerDownPos = Input.mousePosition;
+    }
+
+    //鼠标抬起
+    public void OnPointerUp()
+    {
+        pointerUpPos = Input.mousePosition;
+
+        //判断 移动距离小时是无效操作
+        if (Vector3.Distance(pointerDownPos, pointerUpPos) < 100)
+        {
+            Debug.Log("无效操作");
+            return;
+        }
+
+        //保存数据
+        lastStepModel.UpdateData(this.currentScore, PlayerPrefs.GetInt(Const.BestScore, 0), grids);
+        btn_LastStep.interactable = true;
+
+        //计算移动类型
+        MoveType moveType = CaculateMoveType();
+        Debug.Log("移动类型：" + moveType);
+        MoveNumber(moveType);
+
+        //产生数字
+        if (isNeedCreateNumber)
+        {
+            CreateNumber();
+        }
+
+        //把所有数字的状态恢复成正常状态
+        ResetNumberStatus();
+        isNeedCreateNumber = false;
+
+        //判断游戏是否结束
+        if (IsGameLose())
+        {
+            GameLose();
+        }
+
+
+    }
+
+    //上一步
+    public void OnLastClick()
+    {
+        BackToLastStep();
+        btn_LastStep.interactable = false;
+    }
+    #endregion
+
+    #region 界面更新
+
+    //初始化界面信息
+    public void InitPanelMessage()
+    {
+        this.text_BestScore.text = PlayerPrefs.GetInt(Const.BestScore, 0).ToString();
+        lastStepModel = new StepModel();
+        btn_LastStep.interactable = false;
+
+        //播放音乐
+        AudioManager._instance.PlayMusic(bgClip);
+    }
+
+    //分数增加
+    public void AddScore( int score )
+    {
+        currentScore += score ;
+        UpdateScore(currentScore);
+
+        //判断当前分数是否是最高分
+        if (currentScore > PlayerPrefs.GetInt(Const.BestScore,0))
+        {
+            PlayerPrefs.SetInt(Const.BestScore, currentScore);
+            UpdateBestScore(currentScore);
+        }
+    }
+
+    //更新分数
+    public void UpdateScore( int score )
+    {
+        this.text_Score.text = score.ToString();
+    }
+
+    //重置分数
+    public void ResetScore()
+    {
+        currentScore = 0;
+        UpdateScore(currentScore);
+    }
+
+    //最高分
+    public void UpdateBestScore( int bestScore )
+    {
+        this.text_BestScore.text = bestScore.ToString();
+    }
+
+    #endregion
+
+    #region 游戏流程
+
+    //返回到上一步
+    public void BackToLastStep()
+    {
+        //分数
+        currentScore = lastStepModel.score;
+        UpdateScore(lastStepModel.score);
+
+        PlayerPrefs.SetInt(Const.BestScore, lastStepModel.bestScore);
+        UpdateBestScore(lastStepModel.bestScore);
+
+        //数字
+        for (int i = 0; i < row; i++)
+        {
+            for (int j = 0; j < column; j++)
+            {
+                if (lastStepModel.numbers[i][j] == 0 && grids[i][j].IsHaveNumber())
+                {
+                    if (grids[i][j].IsHaveNumber())
+                    {
+                        GameObject.Destroy(grids[i][j].GetNumber().gameObject);
+                        grids[i][j].SetNumber(null);
+                    }
+                }
+                else if (lastStepModel.numbers[i][j] != 0 )
+                { 
+                    if (grids[i][j].IsHaveNumber())
+                    {
+                        //修改数字
+                        grids[i][j].GetNumber().SetNumber(lastStepModel.numbers[i][j]);
+                    }
+                    else
+                    {
+                        //创建数字
+                        CreateNumber(grids[i][j],lastStepModel.numbers[i][j]);
+                    }
+                }
+                
+            }
+        }
+    }
+
+    //重新开始
+    public void RestartGame()
+    {
+        //数据清空
+        btn_LastStep.interactable = false;
+        //清空分数
+        ResetScore();
+        //清空数字
+        for (int i = 0; i < row; i++)
+        {
+            for (int j = 0; j < column; j++)
+            {
+                if (grids[i][j].GetNumber() != null)
+                {
+                    GameObject.Destroy(grids[i][j].GetNumber().gameObject);
+                }
+                grids[i][j].SetNumber(null);
+            }
+        }
+
+        // 创建一个数字
+        CreateNumber();
+    }
+
+    //退出游戏
+    public void ExitGame()
+    {
+        SceneManager.LoadSceneAsync(0);
+    }
+    
+    //游戏胜利
+    public void GameWin()
+    {
+        Debug.Log("游戏胜利！");
+        winPanel.Show();
+    }
+
+    //游戏失败
+    public void GameLose()
+    {
+        Debug.Log("游戏失败！");
+        losePanel.Show();
+    }
+    #endregion
+
+
 }
